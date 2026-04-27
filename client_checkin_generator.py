@@ -3,7 +3,10 @@
 import streamlit as st
 from openai import OpenAI
 
-client = OpenAI()
+import os
+from openai import OpenAI
+
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 st.title("Client Check-In Email Generator")
 
