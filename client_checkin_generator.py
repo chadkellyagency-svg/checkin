@@ -63,10 +63,16 @@ Return:
 3. Short Partner AMS note
 """
 
+try:
     response = client.responses.create(
-        model="gpt-5.5",
+        model="gpt-4.1-mini",
         input=prompt
     )
+    st.text_area("Copy Email", response.output_text, height=350)
+
+except Exception as e:
+    st.error("The AI request failed. Check that API billing is active, the model name is valid, and your OpenAI project has usage available.")
+    st.code(str(e))
 
     st.subheader("Generated Message")
     st.write(response.output_text)
