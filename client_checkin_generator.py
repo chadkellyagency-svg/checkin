@@ -1,23 +1,36 @@
-# client_checkin_generator.py
-
 import streamlit as st
-from openai import OpenAI
-
 import os
 from openai import OpenAI
 
+# Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+st.set_page_config(page_title="Client Check-In Generator", layout="centered")
 
 st.title("Client Check-In Email Generator")
 
-customer_name = st.text_input("Customer first name")
-agent_name = st.text_input("Agent name")
-context = st.text_area("Personal context / notes")
-tone = st.selectbox("Tone", ["Friendly professional", "Very brief", "Warm and conversational"])
-purpose = st.selectbox("Purpose", ["Annual check-in", "Semiannual check-in", "Renewal-season review"])
+# ---- INPUTS ----
+
+customer_name = st.text_input("Customer First Name")
+agent_name = st.text_input("Agent Name")
+
+context = st.text_area(
+    "Personal Context (optional)",
+    placeholder="Example: Added teen driver last year, long-time client, discussed roof, etc."
+)
+
+tone = st.selectbox(
+    "Tone",
+    ["Friendly professional", "Warm and conversational", "Very brief"]
+)
+
+purpose = st.selectbox(
+    "Purpose",
+    ["Annual check-in", "Semiannual check-in", "Renewal-season review"]
+)
 
 topics = st.multiselect(
-    "Coverage reminders to include",
+    "Coverage Reminders to Include",
     [
         "Life changes",
         "Young drivers",
@@ -30,49 +43,64 @@ topics = st.multiselect(
     ]
 )
 
-avoid = st.text_area("Anything to avoid mentioning?")
+avoid = st.text_area("Anything to avoid mentioning? (optional)")
+
+# ---- GENERATE BUTTON ----
 
 if st.button("Generate Email"):
-    prompt = f"""
-You are helping an independent insurance agency write a professional customer check-in email.
 
-Write a short, warm, polished email from the agent to the customer.
+    if not customer_name or not agent_name:
+        st.warning("Please enter at least the customer name and agent name.")
+    else:
+        prompt = f"""
+You are helping an independent insurance agency write a short, personal client check-in email.
 
-Requirements:
-- Do not sound like a newsletter.
-- Do not sound salesy.
-- Keep it under 200 words.
-- Make it feel personally written.
-- Encourage the customer to tell us early about life changes so we can proactively adjust coverage and keep pricing as fair as possible.
-- Include only the selected coverage reminders.
-- Use plain language.
-- Do not over-explain.
-- End with a simple invitation to reply.
+Write a professional but natural email that:
+- Feels like it was written personally by the agent (not marketing)
+- Is under 180 words
+- Encourages the client to share upcoming life changes early so coverage can be adjusted proactively and pricing stays fair
+- Includes ONLY the relevant coverage reminders selected
+- Uses simple, clear language
+- Ends with a low-pressure invitation to reply
 
-Customer first name: {customer_name}
+Customer name: {customer_name}
 Agent name: {agent_name}
 Purpose: {purpose}
 Tone: {tone}
-Personal context: {context}
-Coverage reminders: {", ".join(topics)}
+Context: {context}
+Topics to include: {", ".join(topics)}
 Avoid mentioning: {avoid}
 
-Return:
-1. Subject line
-2. Email body
-3. Short Partner AMS note
+Return format:
+
+Subject line:
+<subject>
+
+Email:
+<body>
+
+Partner Note:
+<short internal note>
 """
 
-try:
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        input=prompt
-    )
-    st.text_area("Copy Email", response.output_text, height=350)
+        try:
+            response = client.responses.create(
+                model="gpt-4.1-mini",
+                input=prompt
+            )
 
-except Exception as e:
-    st.error("The AI request failed. Check that API billing is active, the model name is valid, and your OpenAI project has usage available.")
-    st.code(str(e))
+            output = response.output_text
 
-    st.subheader("Generated Message")
-    st.write(response.output_text)
+            st.success("Email generated successfully")
+
+            st.subheader("Copy / Paste Output")
+            st.text_area("Generated Email", output, height=400)
+
+        except Exception as e:
+            st.error("Something went wrong with the AI request.")
+            st.write("Common causes:")
+            st.write("- API billing not set up")
+            st.write("- Invalid API key")
+            st.write("- Temporary rate limits")
+
+            st.code(str(e))
